@@ -5,21 +5,24 @@ try:
 except ImportError:
     from .job import Job
 
-import sys
-
-
 class Employee: 
-    def __init__(self, name):
-        self.name = name
-        self.ssn = 0
-        self.jobs = []
+    def __init__(self, jobType):
+        self.__jobType = jobType
+        self.__ssn = 0
+        self.__jobs = []
     
-    def addJob(self, name, wage): 
-        newJob = Job(name, wage)
-        self.jobs.append(newJob)
+    def addJob(self, jobType): 
+        for job in self.__jobs: 
+            if job.type() == jobType: 
+                return job
+        newJob = Job(jobType)
+        self.__jobs.append(newJob)
+        return newJob
+    
+    def totalJobHours(self, jobType): 
+        for job in self.__jobs: 
+            if job.type() == jobType: 
+                return job.totalHours()
 
-# e = Employee("j", "j")
-# e.addJob("j", 23)
-# print(e.jobs)
 
     

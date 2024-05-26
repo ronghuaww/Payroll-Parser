@@ -3,8 +3,13 @@ import re
 import datetime
 from parsedData.employee import Employee
 from parsedData.shift import Shift
+from parsedData.enums.jobType import JobType, findJobName
 
 from difflib import get_close_matches
+
+
+TIME_EXPR = r'\d{1,2}:\d{2}[a-zA-Z]{2}'
+DATE_EXPR = r'\d{1,2}/\d{1,2}/\d{4}'
 
 
 reader = PdfReader('payrollPDFs/demoHours.pdf')
@@ -27,7 +32,6 @@ print('Address:', address)
 
 
 
-
 # move down the starting point of the text
 text = text[nameAddrSearch.end():]
 
@@ -41,24 +45,23 @@ EmployeeExpr = re.compile(r'\d+ - [a-zA-Z ]+')
 nameEmploySearch = EmployeeExpr.search(text)
 nameEmploy = nameEmploySearch.group().split(" - ")[1]
 
+employee = Employee(nameEmploy)
+
 # find the end of the employee section 
 employEndExpr = re.compile('Total Hours Worked This Pay Period')
 employEndSearch = employEndExpr.search(text)
 
-# one's data sections
+# one employee's shifts sections
 employSection = text[nameEmploySearch.end():employEndSearch.end()]
 
-timeExpr = r'\d{1,2}:\d{2}[a-zA-Z]{2}'
-dateExpr = r'\d{1,2}/\d{1,2}/\d{4}'
-
 # shift format for one date
-lineOneExpr = r'[a-zA-Z ]+ \d+ - [a-zA-Z* ]+ ' + timeExpr + ' ' + dateExpr
-lineTwoExpr = r'\n[a-zA-Z ]+\d*.\d+[ ]+' + timeExpr
-shiftExpr = re.compile(lineOneExpr + lineTwoExpr)
+LINE_1_EXPR = r'[a-zA-Z ]+ \d+ - [a-zA-Z* ]+ ' + TIME_EXPR + ' ' + DATE_EXPR
+LINE_2_EXPR = r'\n[a-zA-Z ]+\d*.\d+[ ]+' + TIME_EXPR
+shiftExpr = re.compile(LINE_1_EXPR + LINE_2_EXPR)
 shifts = re.findall(shiftExpr, employSection)
 
 # shift format that holds two different dates 
-shiftExtendExpr = re.compile(lineOneExpr + lineTwoExpr + ' ' + dateExpr)
+shiftExtendExpr = re.compile(LINE_1_EXPR + LINE_2_EXPR + ' ' + DATE_EXPR)
 shiftsExtend = re.findall(shiftExtendExpr, employSection)
 
 # removing these duplicating shifts
@@ -66,28 +69,28 @@ for i in range(len(shiftsExtend)):
     shifts.remove(get_close_matches(shiftsExtend[i], shifts, 1)[0]) 
 
 
-shiftTemp = []
+def addingEmployeeShifts(shifts, employee, extended=False): 
+    for i in range(len(shifts)): 
+        job = employee.addJob(findJobName(shifts[i]))
 
-for i in range(len(shifts)): 
-    shiftTimes = re.findall(timeExpr, shifts[i])
-    shiftDate = re.findall(dateExpr, shifts[i]) 
+        shiftTimes = re.findall(TIME_EXPR, shifts[i])
+        shiftDate = re.findall(DATE_EXPR, shifts[i]) 
 
-    toTimeDateFormat = '%I:%M%p %m/%d/%Y'
-    startTimeDate = shiftTimes[0] + " " + shiftDate[0]
-    endTimeDate = shiftTimes[1] + " " + shiftDate[0]
+        TIME_DATE_FORMAT = '%I:%M%p %m/%d/%Y'
+        startTimeDate = shiftTimes[0] + " " + shiftDate[0]
+        endTimeDate = shiftTimes[1] + " " + shiftDate[0]
 
-    start = datetime.datetime.strptime(startTimeDate, toTimeDateFormat)
-    end = datetime.datetime.strptime(endTimeDate, toTimeDateFormat)
+        if extended: 
+            endTimeDate = shiftTimes[1] + " " + shiftDate[1]
 
-    newShift = Shift(start, end)
-    shiftTemp.append(newShift)
+        start = datetime.datetime.strptime(startTimeDate, TIME_DATE_FORMAT)
+        end = datetime.datetime.strptime(endTimeDate, TIME_DATE_FORMAT)
 
+        newShift = Shift(start, end)
+        job.addShift(newShift)
 
-
-
-########### name and address only for first page, skip these index in later pages 
-
-# find the name of people 
+addingEmployeeShifts(shifts, employee)
+addingEmployeeShifts(shiftsExtend, employee, True)
 
 
-
+print(employee.totalJobHours(JobType.MANAGER))
