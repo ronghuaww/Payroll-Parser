@@ -9,9 +9,9 @@ import sys
 
 
 class Employee: 
-    def __init__(self, name, ssn):
+    def __init__(self, name):
         self.name = name
-        self.ssn = ssn
+        self.ssn = 0
         self.jobs = []
     
     def addJob(self, name, wage): 

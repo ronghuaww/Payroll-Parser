@@ -2,23 +2,25 @@ from pypdf import PdfReader
 import re
 import datetime
 from parsedData.employee import Employee
-from difflib import get_close_matches
+from parsedData.shift import Shift
 
-test = Employee("te", "te")
-print("EM", test)
+from difflib import get_close_matches
 
 
 reader = PdfReader('payrollPDFs/demoHours.pdf')
 numPages = len(reader.pages)
-text = reader.pages[0].extract_text()
+
+text = ''
+for i in range(len(reader.pages)): 
+    text += reader.pages[i].extract_text()
 
 
 # obtain the name and address of the establishment 
-firstPage = reader.pages[0]
-nameAddrFind = re.search(r'[a-zA-Z.\d]+ - [a-zA-Z.\d]+', firstPage.extract_text())
-spiltnameAddr = nameAddrFind.string.split(" - ")
-name = spiltnameAddr[0]
-address = spiltnameAddr[1]
+nameAddrExpr = re.compile(r'[a-zA-Z. &]+ - [a-zA-Z. &\d]+')
+nameAddrSearch = nameAddrExpr.search(text)
+nameAddr = nameAddrSearch.group().split(" - ")
+name = nameAddr[0]
+address = nameAddr[1]
 
 print('Name:', name)
 print('Address:', address)
@@ -26,73 +28,60 @@ print('Address:', address)
 
 
 
-
-namingExpr = r'\d+ - [a-zA-Z ]+'
-n = re.findall(namingExpr, text)
-
-
-def removeOccupations(n): 
-    occupations = ['Kitchen', 'Server', 'Busser', 'Manager', 'Host']
-    for i in occupations: 
-        if i in n: 
-            return False
-    return True
-        
-filtered = filter(removeOccupations, n)
-for s in filtered:
-    print("uhh", s)
+# move down the starting point of the text
+text = text[nameAddrSearch.end():]
 
 
 
-# ThuIN No Schedule 103 - Kitchen 10:54am 5/9/2024
-# OUT No Schedule  5.40 4:18pm
 
-# FriIN No Schedule 101 - *Server Tbl 3:17pm 5/10/2024
-# OUT No Schedule  7.72 11:00pm estela flores On Time
+
+
+# finding the nearest employee name 
+EmployeeExpr = re.compile(r'\d+ - [a-zA-Z ]+')
+nameEmploySearch = EmployeeExpr.search(text)
+nameEmploy = nameEmploySearch.group().split(" - ")[1]
+
+# find the end of the employee section 
+employEndExpr = re.compile('Total Hours Worked This Pay Period')
+employEndSearch = employEndExpr.search(text)
+
+# one's data sections
+employSection = text[nameEmploySearch.end():employEndSearch.end()]
+
 timeExpr = r'\d{1,2}:\d{2}[a-zA-Z]{2}'
 dateExpr = r'\d{1,2}/\d{1,2}/\d{4}'
 
-firstHrLineExpr = r'[a-zA-Z ]+ \d+ - [a-zA-Z* ]+ ' + timeExpr + ' ' + dateExpr
-secHrLineExpr = r'\n[a-zA-Z ]+\d*.\d+[ ]+' + timeExpr
-shiftExpr = re.compile(firstHrLineExpr + secHrLineExpr)
-t = re.findall(shiftExpr, text)
-print(t)
-print(len(t))
+# shift format for one date
+lineOneExpr = r'[a-zA-Z ]+ \d+ - [a-zA-Z* ]+ ' + timeExpr + ' ' + dateExpr
+lineTwoExpr = r'\n[a-zA-Z ]+\d*.\d+[ ]+' + timeExpr
+shiftExpr = re.compile(lineOneExpr + lineTwoExpr)
+shifts = re.findall(shiftExpr, employSection)
 
-shiftTimes = re.findall(timeExpr, t[0])
-print("shift", shiftTimes)
+# shift format that holds two different dates 
+shiftExtendExpr = re.compile(lineOneExpr + lineTwoExpr + ' ' + dateExpr)
+shiftsExtend = re.findall(shiftExtendExpr, employSection)
 
-shiftDates = re.findall(dateExpr, t[0])
-print("shiftDate", shiftDates)
-
-
-# timeStamps = re.findall(timeExpr, text)
-# print(timeStamps)
-
-# dateStamps = re.findall(dateExpr, text)
-# print(dateStamps)
+# removing these duplicating shifts
+for i in range(len(shiftsExtend)): 
+    shifts.remove(get_close_matches(shiftsExtend[i], shifts, 1)[0]) 
 
 
-# FriIN No Schedule 103 - Kitchen 8:13am 5/10/2024
-# OUT Sat No Schedule  15.83 12:03am 5/11/2024
+shiftTemp = []
 
-# MonIN No Schedule 101 - *Server Tbl 10:30am 5/6/2024
-# OUT Tue Mgr Clock Out  28.78 3:16pm 5/7/2024 estela flores On Time
+for i in range(len(shifts)): 
+    shiftTimes = re.findall(timeExpr, shifts[i])
+    shiftDate = re.findall(dateExpr, shifts[i]) 
 
-# overlaps w prev list 
-hourOverlapExpr = re.compile(firstHrLineExpr + secHrLineExpr + ' ' + dateExpr)
-y = re.findall(hourOverlapExpr, text)
-print(y)
+    toTimeDateFormat = '%I:%M%p %m/%d/%Y'
+    startTimeDate = shiftTimes[0] + " " + shiftDate[0]
+    endTimeDate = shiftTimes[1] + " " + shiftDate[0]
 
-print("close", get_close_matches(y[0], t, 1))
+    start = datetime.datetime.strptime(startTimeDate, toTimeDateFormat)
+    end = datetime.datetime.strptime(endTimeDate, toTimeDateFormat)
 
+    newShift = Shift(start, end)
+    shiftTemp.append(newShift)
 
-t.remove(get_close_matches(y[0], t, 1)[0]) 
-print(t)
-
-
-startTime = datetime.datetime.strptime(shiftTimes[0] + " " + shiftDates[0], "%I:%M%p %m/%d/%Y")
-print("datetime", startTime)
 
 
 
