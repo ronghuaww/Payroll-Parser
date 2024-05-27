@@ -1,6 +1,4 @@
 import datetime
-#from enums.jobType import JobType
-#from shift import Shift
 
 try:
     from shift import Shift
@@ -23,6 +21,6 @@ class Job:
     def totalHours(self): 
         total = 0
         for shift in self.__shifts: 
-            total += shift.calcHrs()
-        return total 
+            total += shift.hrs()
+        return round(total, 2)
     

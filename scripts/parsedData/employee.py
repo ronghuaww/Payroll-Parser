@@ -6,8 +6,8 @@ except ImportError:
     from .job import Job
 
 class Employee: 
-    def __init__(self, jobType):
-        self.__jobType = jobType
+    def __init__(self, name):
+        self.__name = name
         self.__ssn = 0
         self.__jobs = []
     
@@ -23,6 +23,12 @@ class Employee:
         for job in self.__jobs: 
             if job.type() == jobType: 
                 return job.totalHours()
+    
+    def name(self): 
+        return self.__name
+    
+    def jobsList(self): 
+        return self.__jobs
 
 
     
