@@ -10,7 +10,7 @@ class JobType(Enum):
     KITCHEN = 7
     COOK = 8
 
-def findJobName(text): 
+def findJobType(text): 
     # match needs python 10 or higher
     match text: 
         case text if "Manager" in text: 

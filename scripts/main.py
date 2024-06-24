@@ -1,5 +1,5 @@
 from pypdf import PdfReader
-from hoursParser import updateEmployees
+from shiftParser import updateEmployees
 
 reader = PdfReader('payrollPDFs/demoHours.pdf')
 numPages = len(reader.pages)
@@ -12,11 +12,13 @@ for i in range(len(reader.pages)):
 employees = []
 updateEmployees(text, employees)
 
+    
+new_list = sorted(employees, key=lambda x: x.jobsList()[0].type().value, reverse=True)
+
+
 for i in employees: 
     print(i.name())
 
     for j in i.jobsList(): 
+        print(j.type().value)
         print(j.totalHours())
-
-
-

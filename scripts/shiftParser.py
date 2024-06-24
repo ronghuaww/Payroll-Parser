@@ -2,7 +2,7 @@ import re
 import datetime
 from parsedData.employee import Employee
 from parsedData.shift import Shift
-from parsedData.enums.jobType import findJobName
+from parsedData.enums.jobType import findJobType
 from difflib import get_close_matches
 
 TIME_EXPR = r'\d{1,2}:\d{2}[a-zA-Z]{2}'
@@ -12,7 +12,8 @@ HRS_NUM_EXPR = r'\d+?\.\d+'
 
 """ Obtain the name and address of the establishment. 
 
-Argument: extracted text from PDF 
+Argument: 
+    text: extracted text from PDF 
 
 Return: an list of various data 
     Index 0: name of the establishment 
@@ -28,12 +29,21 @@ def nameAddress(text):
     return [nameAddr[0], nameAddr[1], \
             nameAddrSearch.start(), nameAddrSearch.end()]
 
+""" Private Function: Finds all shifts for a particular employee. 
 
+Argument: 
+    shifts: string that holds all shifts of a particular employee
+    employee: Employee Object
+    extended: if shifts have hours that extend into the next day
+
+Return: none 
+    the given Employee Object is modified
+"""
 def __addingShifts(shifts, employee, extended=False): 
     TIME_DATE_FORMAT = '%I:%M%p %m/%d/%Y'
 
     for i in range(len(shifts)): 
-        job = employee.addJob(findJobName(shifts[i]))
+        job = employee.addJob(findJobType(shifts[i]))
 
         shiftTimes = re.findall(TIME_EXPR, shifts[i])
         shiftDate = re.findall(DATE_EXPR, shifts[i]) 
@@ -53,7 +63,15 @@ def __addingShifts(shifts, employee, extended=False):
         newShift = Shift(start, end, float(hrs[0]))
         job.addShift(newShift)
 
+""" Parse through a document to create a list of employees 
 
+Argument: 
+    text: string that holds all shifts of all employees
+    employees: list of Employee Objects 
+
+Return: none 
+    each employee is appeneded to the list of Employee Objects
+"""
 def updateEmployees(text, employees): 
     # finding the nearest employee name 
     EMPLOYEE_EXPR = re.compile(r'\d+ - [a-zA-Z ]+')
@@ -94,5 +112,3 @@ def updateEmployees(text, employees):
 
         # move down the starting point of the text
         text = text[employEndSearch.end():]
-
-
