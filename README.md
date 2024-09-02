@@ -16,5 +16,19 @@ It asks for three inputs:
 - CSV file that contains a list of employees' names, Social Security Numbers, and pay rates. 
 
 It will output: 
-- CSV file that lists all employees with their respective names, Social Security Numbers, Position Held, Pay Rate, Worked Hrs, and Tips earned. 
+- CSV file that lists all employees with their respective names, Social Security Numbers, Positions Held, Pay Rate, Worked Hrs, and Tips earned. 
 
+
+## To Run: 
+- have an "input" folder with subfolders called: 
+  - "hoursPDFs" - containing the "Employee Time Card and Job Detail" Document
+  -  "tipsPDFs" - containing the "Consolidated Employee Tip Totals by Revenue Center" Document
+  - "ssnCSVs" - containing a list of employees' names, Social Security Numbers, and pay rates
+
+- In "main.py", update the following variables to the respective file name: 
+  - "employeesTimePdf"
+  - "employeeTipsPdf" 
+  - "employeeSsnCsv"
+  - "outputFileCsv" 
+
+- The output will be found in the "output" folder. 
