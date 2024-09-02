@@ -4,12 +4,14 @@ import pandas
 
 from tipParser import tipsIntoDf
 
+# update input file names
 employeesTimePdf = '8-19-9-1 payroll.pdf'
 employeeTipsPdf = '8-19 9-1 tips.pdf'
 employeeSsnCsv = '080524-081824-employeeinfo.csv'
 
 outputFileCsv = '081924_090124 - Payroll.csv'
 
+# update output file names
 employees = []
 
 # parsing through each employee's hours
