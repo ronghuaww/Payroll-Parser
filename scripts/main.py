@@ -1,24 +1,34 @@
-from pypdf import PdfReader
-from shiftParser import updateEmployees
+from shiftParser import updateEmployees, hoursIntoDf
+from configPdfs import combineText
+import pandas
 
-reader = PdfReader('payrollPDFs/demoHours.pdf')
-numPages = len(reader.pages)
+from tipParser import tipsIntoDf
 
-# combined text from all pages into one large string
-text = ''
-for i in range(len(reader.pages)): 
-    text += reader.pages[i].extract_text()
+employeesTimePdf = '8-19-9-1 payroll.pdf'
+employeeTipsPdf = '8-19 9-1 tips.pdf'
+employeeSsnCsv = '080524-081824-employeeinfo.csv'
+
+outputFileCsv = '081924_090124 - Payroll.csv'
 
 employees = []
-updateEmployees(text, employees)
 
-    
-new_list = sorted(employees, key=lambda x: x.jobsList()[0].type().value, reverse=True)
+# parsing through each employee's hours
+timeText = combineText('input/hoursPDFs/' + employeesTimePdf)
+updateEmployees(timeText, employees)
+dfEmployeesTime = hoursIntoDf(employees)
 
+# grabs the ssn of all employees from past documents
+df = pandas.read_csv('input/ssnCSVs/' + employeeSsnCsv, header=None)
+df.columns = ["Employee Name", "Social Security #", "Pay Rate"]
 
-for i in employees: 
-    print(i.name())
+# grab tips earned by each employedd
+tipText = combineText('input/tipsPDFs/' + employeeTipsPdf)
+dfTip = tipsIntoDf(tipText)
 
-    for j in i.jobsList(): 
-        print(j.type().value)
-        print(j.totalHours())
+# merge tips and ssn into one csv
+final = dfEmployeesTime.merge(df,on=['Employee Name'], how="left")
+final = final.merge(dfTip,on=['Employee Name'], how="left")
+
+# output to a csv
+final.to_csv('output/' + outputFileCsv)
+

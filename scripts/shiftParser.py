@@ -1,9 +1,12 @@
 import re
 import datetime
+import pandas
+
 from parsedData.employee import Employee
 from parsedData.shift import Shift
 from parsedData.enums.jobType import findJobType
 from difflib import get_close_matches
+
 
 TIME_EXPR = r'\d{1,2}:\d{2}[a-zA-Z]{2}'
 DATE_EXPR = r'\d{1,2}/\d{1,2}/\d{4}'
@@ -78,11 +81,16 @@ def updateEmployees(text, employees):
 
     # format for shifts under one date
     LINE_1_EXPR = r'[a-zA-Z ]+ \d+ - [a-zA-Z* ]+ ' + TIME_EXPR + ' ' + DATE_EXPR
-    LINE_2_EXPR = r'\n[a-zA-Z ]+' + HRS_NUM_EXPR + '[ ]+' + TIME_EXPR
+    LINE_2_EXPR = r'\n[\w ]+' + HRS_NUM_EXPR + r'[ ]+' + TIME_EXPR
     SHIFTS_EXPR = re.compile(LINE_1_EXPR + LINE_2_EXPR)
+
+    # format for shifts with reasoning in the top line 
+    SHIFTS_REASON_EXPR = re.compile(LINE_1_EXPR + r'[\w ]+' + LINE_2_EXPR)
 
     # format for shifts under two different dates 
     SHIFTS_EXTEND_EXPR = re.compile(LINE_1_EXPR + LINE_2_EXPR + ' ' + DATE_EXPR)
+    SHIFTS_EXTEND_REASON_EXPR = re.compile(LINE_1_EXPR + r'[\w ]+' + LINE_2_EXPR + ' ' + DATE_EXPR)
+
 
     # ending section indicator 
     EMPLOY_SECTION_END_EXPR = re.compile('Total Hours Worked This Pay Period')
@@ -101,14 +109,47 @@ def updateEmployees(text, employees):
 
         # idenifying all the shifts
         shifts = re.findall(SHIFTS_EXPR, employSection)
+        shiftsWithReasons = re.findall(SHIFTS_REASON_EXPR, employSection)
+
         shiftsExtend = re.findall(SHIFTS_EXTEND_EXPR, employSection)
+        shiftsExtendWithReasons = re.findall(SHIFTS_EXTEND_REASON_EXPR, employSection)
 
         # removing any duplicating shifts
         for i in range(len(shiftsExtend)): 
             shifts.remove(get_close_matches(shiftsExtend[i], shifts, 1)[0]) 
 
         __addingShifts(shifts, employee)
+        __addingShifts(shiftsWithReasons, employee)
         __addingShifts(shiftsExtend, employee, True)
+        __addingShifts(shiftsExtendWithReasons, employee, True)
 
         # move down the starting point of the text
         text = text[employEndSearch.end():]
+
+""" convert a list of Employee Objects into one csv file
+
+Argument: 
+    employees: list of Employee Objects 
+
+Return: 
+    dataframe: list of each employee's position and hours 
+"""
+def hoursIntoDf(employees): 
+    sortedEmployees = sorted(employees, key=lambda x: x.jobsList()[0].type().value)
+
+    employeesLists = []
+    for employee in sortedEmployees: 
+
+        for job in employee.jobsList(): 
+            row = []
+
+            row.append(employee.name().title())
+            row.append(job.type().name.title())
+            row.append(job.totalHours())
+
+            employeesLists.append(row)
+
+    timeColumnNames = ["Employee Name", "Pay Type", "Hrs"]
+    dfEmployeesTime = pandas.DataFrame(employeesLists, columns = timeColumnNames)
+
+    return dfEmployeesTime

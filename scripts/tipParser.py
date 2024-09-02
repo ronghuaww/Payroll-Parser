@@ -1,26 +1,34 @@
-from pypdf import PdfReader
+import pandas
 import re
 
-reader = PdfReader('payrollPDFs/demoTips.pdf')
-numPages = len(reader.pages)
+""" 
+    Parse through a document to create a list of employees and their tips
+Argument: 
+    text: extracted text from PDF 
 
-# combined text from all pages into one large string
-text = ''
-for i in range(len(reader.pages)): 
-    text += reader.pages[i].extract_text()
+Return: 
+    dataframe: list of each employee's name and their tip amount 
+"""
+def tipsIntoDf(text): 
 
+    EMPLOYEE_EXPR = re.compile(r'\d+ - [a-zA-Z ]+')  
+    nameEmploySearch = re.findall(EMPLOYEE_EXPR, text)
 
-TIP_TOTAL_EXPR = re.compile(r'Employee Total[ ]+(\d+?\.\d+%?[ ]+){8}')
-tipSearch = TIP_TOTAL_EXPR.search(text)
+    TIP_TOTAL_EXPR = re.compile(r'Employee Total[ ]+(?:\d*\,?\d+\.\d{2}%?[ ]+){8}')
+    tipSearch = re.findall(TIP_TOTAL_EXPR, text)
 
-print(text)
-#print("ed--------", tipSearch.group(), "--")
+    employeesTipsLists = []
+    for i in range(len(nameEmploySearch)): 
+        row = []
 
-for i in tipSearch: 
-    print (i)
+        fullName = nameEmploySearch[i].split(" - ")
+        row.append(fullName[1].title())
 
-# 6,315.09 Employee Total  2,499.55  449.10  370.94  100.00 14.57%  920.04  449.10  370.94  0.00
-#  0.00 Employee Total  0.00  0.00  0.00  0.00 0.00%  0.00  0.00  0.00  0.00
+        separateValues = tipSearch[i].split("  ")
+        row.append(separateValues[6])
 
+        employeesTipsLists.append(row)
 
-#print(text)
+    dfEmployeesTips = pandas.DataFrame(employeesTipsLists, columns = ["Employee Name", "Tips"])
+
+    return dfEmployeesTips

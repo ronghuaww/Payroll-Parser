@@ -152,8 +152,11 @@ dmypy.json
 # Cython debug symbols
 cython_debug/
 
-# payroll PDFs
-payrollPDFs/
+# input documents 
+input/
+
+# output documents
+output/
 
 # PyCharm
 #  JetBrains specific template is maintained in a separate JetBrains.gitignore that can
